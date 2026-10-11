@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f5f8f1">
+  <title>ReCircle — Recycling rewards</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --forest: #173e32;
+      --green: #287451;
+      --lime: #d9f36a;
+      --muted: #829087;
+      --line: #e8ede5;
+      --surface: #fff;
+      --canvas: #f5f8f1;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--forest); background: var(--canvas); }
+    button { color: inherit; font: inherit; cursor: pointer; }
+    .app { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 240px; flex: 0 0 240px; display: flex; flex-direction: column;
+      padding: 29px 18px 22px; background: #fff; border-right: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 12px; font-size: 19px; font-weight: 760; letter-spacing: -.7px; }
+    .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; color: white; background: var(--green); border-radius: 11px; }
+    .brand-mark svg { width: 21px; height: 21px; }
+    .nav-label { margin: 43px 12px 12px; color: #a1aaa3; font-size: 10px; font-weight: 750; letter-spacing: 1.5px; }
+    .nav { display: grid; gap: 5px; }
+    .nav a { display: flex; align-items: center; gap: 12px; padding: 12px; color: #7f8982; text-decoration: none; border-radius: 10px; font-size: 13px; font-weight: 560; }
+    .nav a.active { color: var(--green); background: #edf5ed; font-weight: 700; }
+    .nav svg { width: 18px; height: 18px; }
+    .sidebar-bottom { margin-top: auto; }
+    .impact-card { padding: 16px; background: #f2f6eb; border-radius: 14px; }
+    .impact-icon { font-size: 19px; }
+    .impact-card p { margin: 10px 0 5px; font-size: 12px; font-weight: 720; }
+    .impact-card span { color: #7a887e; font-size: 11px; line-height: 1.55; }
+    .profile { display: flex; align-items: center; gap: 10px; padding: 19px 6px 0; }
+    .avatar { display: grid; place-items: center; width: 34px; height: 34px; color: #345943; background: #e4edcf; border-radius: 50%; font-size: 12px; font-weight: 750; }
+    .profile strong, .profile small { display: block; }
+    .profile strong { font-size: 11px; }
+    .profile small { margin-top: 3px; color: var(--muted); font-size: 10px; }
+    main { width: min(100%, 1260px); margin: 0 auto; padding: 35px 48px 50px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 35px; }
+    .eyebrow { margin: 0 0 7px; color: #8a968c; font-size: 11px; font-weight: 650; letter-spacing: .6px; }
+    h1 { margin: 0; font-size: clamp(23px, 3vw, 30px); letter-spacing: -1.1px; }
+    .top-actions { display: flex; align-items: center; gap: 13px; }
+    .icon-button { display: grid; place-items: center; width: 39px; height: 39px; position: relative; background: white; border: 1px solid var(--line); border-radius: 12px; }
+    .icon-button svg { width: 17px; height: 17px; }
+    .status-dot { position: absolute; width: 7px; height: 7px; top: 8px; right: 8px; background: #eb8c63; border: 1px solid white; border-radius: 50%; }
+    .primary-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 0 16px; color: white; background: var(--green); border: 0; border-radius: 10px; font-size: 12px; font-weight: 700; transition: background .2s, transform .2s; }
+    .primary-button:hover { background: #1e6043; transform: translateY(-1px); }
+    .primary-button svg { width: 16px; height: 16px; }
+    .hero {
+      display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(205px, .78fr); gap: 26px;
+      min-height: 220px; padding: 30px 33px; overflow: hidden; color: white; background: var(--forest);
+      border-radius: 20px; position: relative;
+    }
+    .hero:after { content: ""; position: absolute; width: 245px; height: 245px; top: -145px; left: 49%; border: 1px solid rgba(255,255,255,.1); border-radius: 50%; box-shadow: 0 0 0 27px rgba(255,255,255,.025), 0 0 0 56px rgba(255,255,255,.025); pointer-events: none; }
+    .hero-copy { z-index: 1; }
+    .hero-kicker { display: flex; align-items: center; gap: 7px; color: #c3d4c7; font-size: 11px; font-weight: 650; }
+    .hero-kicker span { width: 7px; height: 7px; background: var(--lime); border-radius: 50%; }
+    .hero h2 { margin: 20px 0 8px; font-size: 34px; letter-spacing: -1.7px; }
+    .hero-copy > p { max-width: 380px; margin: 0; color: #c0cec3; font-size: 12px; line-height: 1.65; }
+    .hero .primary-button { margin-top: 20px; color: var(--forest); background: var(--lime); }
+    .hero .primary-button:hover { background: #e5fa89; }
+    .hero-points { z-index: 1; align-self: center; justify-self: end; width: 100%; max-width: 230px; padding: 20px; color: var(--forest); background: var(--lime); border-radius: 16px; }
+    .points-label { display: flex; align-items: center; justify-content: space-between; color: #506139; font-size: 11px; font-weight: 650; }
+    .points-label svg { width: 18px; height: 18px; }
+    .points-value { display: block; margin: 12px 0 4px; font-size: 35px; font-weight: 790; letter-spacing: -1.8px; }
+    .points-foot { color: #566744; font-size: 10px; }
+    .points-cta { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 16px; padding: 10px 12px; color: white; background: var(--forest); border: 0; border-radius: 9px; font-size: 11px; font-weight: 680; }
+    .points-cta span:last-child { font-size: 16px; }
+    .section-heading { display: flex; align-items: end; justify-content: space-between; margin: 30px 0 15px; }
+    .section-heading h2 { margin: 0; font-size: 16px; letter-spacing: -.35px; }
+    .section-heading p { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+    .text-button { padding: 5px 0; color: var(--green); background: none; border: 0; font-size: 11px; font-weight: 700; }
+    .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
+    .stat-card { display: flex; align-items: center; gap: 14px; min-height: 88px; padding: 16px; background: white; border: 1px solid #edf0e9; border-radius: 14px; }
+    .stat-icon { display: grid; place-items: center; width: 41px; height: 41px; flex: 0 0 41px; background: #edf5e8; border-radius: 12px; }
+    .stat-icon svg { width: 20px; height: 20px; color: var(--green); }
+    .stat-card:nth-child(2) .stat-icon { background: #f8f1e1; }
+    .stat-card:nth-child(2) .stat-icon svg { color: #bd8a38; }
+    .stat-card:nth-child(3) .stat-icon { background: #eaf1f4; }
+    .stat-card:nth-child(3) .stat-icon svg { color: #4c7885; }
+    .stat-label { color: #839087; font-size: 10px; font-weight: 550; }
+    .stat-value { margin-top: 5px; font-size: 20px; font-weight: 750; letter-spacing: -.6px; }
+    .stat-value small { margin-left: 3px; color: #8c968e; font-size: 10px; font-weight: 550; letter-spacing: 0; }
+    .lower-grid { display: grid; grid-template-columns: 1.12fr .88fr; gap: 17px; margin-top: 29px; }
+    .panel { min-width: 0; padding: 19px; background: white; border: 1px solid #edf0e9; border-radius: 15px; }
+    .panel-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .panel-heading h2 { margin: 0; font-size: 13px; letter-spacing: -.2px; }
+    .panel-heading button { color: #738078; background: white; border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px; font-size: 10px; }
+    .activity-list { display: grid; }
+    .activity { display: flex; align-items: center; gap: 11px; padding: 10px 0; border-bottom: 1px solid #f0f2ed; }
+    .activity:last-child { border-bottom: 0; padding-bottom: 1px; }
+    .activity-icon { display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 34px; background: #eff5e9; border-radius: 10px; font-size: 16px; }
+    .activity-text { flex: 1; min-width: 0; }
+    .activity-text strong { display: block; overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .activity-text span { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; }
+    .activity-amount { text-align: right; font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .activity-amount small { display: block; margin-top: 4px; color: var(--green); font-size: 9px; font-weight: 600; }
+    .material-list { display: grid; gap: 15px; padding-top: 3px; }
+    .material-row { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 9px; }
+    .material-emoji { font-size: 15px; }
+    .material-name { font-size: 10px; font-weight: 630; }
+    .material-track { height: 5px; margin-top: 7px; overflow: hidden; background: #eef1eb; border-radius: 5px; }
+    .material-fill { height: 100%; background: #8ab868; border-radius: inherit; }
+    .material-row:nth-child(2) .material-fill { background: #c1ce73; }
+    .material-row:nth-child(3) .material-fill { background: #7eaa9a; }
+    .material-row:nth-child(4) .material-fill { background: #ddb77a; }
+    .material-amount { color: #758179; font-size: 10px; }
+    .map-panel { margin-top: 29px; padding: 20px; background: white; border: 1px solid #edf0e9; border-radius: 15px; }
+    .map-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(220px, .65fr); gap: 18px; }
+    .map-canvas { position: relative; min-height: 275px; overflow: hidden; background: #eaf0e5; border: 1px solid #e5ebe0; border-radius: 12px; }
+    .map-canvas > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .map-tag { position: absolute; z-index: 1; top: 12px; left: 12px; padding: 7px 10px; color: #52665a; background: rgba(255,255,255,.93); border: 1px solid rgba(228,235,224,.9); border-radius: 8px; font-size: 9px; font-weight: 650; }
+    .map-marker { position: absolute; z-index: 2; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; color: white; background: var(--green); border: 3px solid white; border-radius: 50% 50% 50% 4px; box-shadow: 0 3px 9px rgba(30,66,45,.25); transform: translate(-50%, -100%) rotate(-45deg); transition: background .15s, scale .15s; }
+    .map-marker svg { width: 14px; height: 14px; transform: rotate(45deg); }
+    .map-marker:hover, .map-marker.selected { z-index: 3; background: #a27932; scale: 1.14; }
+    .map-marker:focus-visible, .machine-card:focus-visible { outline: 3px solid #d9f36a; outline-offset: 2px; }
+    .map-marker.marker-one { top: 35%; left: 32%; }
+    .map-marker.marker-two { top: 60%; left: 63%; }
+    .map-marker.marker-three { top: 79%; left: 42%; }
+    .you-are-here { position: absolute; z-index: 1; top: 40%; left: 69%; display: grid; place-items: center; width: 18px; height: 18px; background: #5c9be2; border: 4px solid white; border-radius: 50%; box-shadow: 0 0 0 7px rgba(92,155,226,.2); }
+    .map-legend { position: absolute; right: 11px; bottom: 11px; display: flex; align-items: center; gap: 12px; padding: 8px 10px; color: #657269; background: rgba(255,255,255,.92); border-radius: 8px; font-size: 9px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .legend-dot { width: 8px; height: 8px; background: var(--green); border: 1px solid white; border-radius: 50%; box-shadow: 0 0 0 1px var(--green); }
+    .legend-dot.current { background: #5c9be2; box-shadow: 0 0 0 1px #5c9be2; }
+    .machine-list { display: grid; align-content: start; gap: 8px; }
+    .machine-card { width: 100%; padding: 12px; text-align: left; background: white; border: 1px solid var(--line); border-radius: 11px; transition: background .15s, border-color .15s; }
+    .machine-card:hover, .machine-card.selected { background: #f5f9f2; border-color: #92b49b; }
+    .machine-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .machine-title { font-size: 10px; font-weight: 700; }
+    .machine-distance { color: var(--green); font-size: 9px; font-weight: 700; white-space: nowrap; }
+    .machine-address { display: block; margin-top: 5px; color: #829087; font-size: 9px; }
+    .machine-status { display: flex; align-items: center; gap: 5px; margin-top: 8px; color: #647a66; font-size: 9px; }
+    .machine-status:before { content: ""; width: 6px; height: 6px; background: #67a16c; border-radius: 50%; }
+    .map-disclaimer { margin: 12px 0 0; color: #919b93; font-size: 9px; line-height: 1.5; }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 10; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(16,38,29,.52); backdrop-filter: blur(4px); }
+    .modal-backdrop.open { display: flex; }
+    .modal { width: min(100%, 510px); max-height: min(90vh, 700px); overflow: auto; padding: 24px; background: white; border-radius: 18px; box-shadow: 0 24px 70px rgba(14,42,28,.2); animation: rise .18s ease-out; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .modal-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; }
+    .modal-top h2 { margin: 0; font-size: 20px; letter-spacing: -.5px; }
+    .modal-top p { margin: 6px 0 0; color: var(--muted); font-size: 11px; }
+    .close-button { display: grid; place-items: center; width: 31px; height: 31px; color: #68756c; background: #f3f5f1; border: 0; border-radius: 9px; font-size: 18px; }
+    .balance-strip { display: flex; align-items: center; justify-content: space-between; margin: 19px 0 15px; padding: 12px 14px; background: #f2f6eb; border-radius: 10px; font-size: 11px; }
+    .balance-strip strong { color: var(--green); font-size: 13px; }
+    .choice-list { display: grid; gap: 10px; }
+    .choice { display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px; text-align: left; background: white; border: 1px solid var(--line); border-radius: 12px; transition: border-color .15s, background .15s; }
+    .choice:hover { border-color: #9abea6; }
+    .choice.selected { background: #f5f9f2; border-color: var(--green); box-shadow: 0 0 0 1px var(--green); }
+    .choice-icon { display: grid; place-items: center; width: 39px; height: 39px; flex: 0 0 39px; background: #eef5e9; border-radius: 10px; font-size: 19px; }
+    .choice-copy { flex: 1; }
+    .choice-copy strong { display: block; font-size: 11px; }
+    .choice-copy small { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
+    .choice-price { color: var(--green); font-size: 11px; font-weight: 750; white-space: nowrap; }
+    .cash-form { display: none; margin-top: 14px; }
+    .cash-form.visible { display: block; }
+    .cash-form label { display: block; margin-bottom: 7px; font-size: 10px; font-weight: 650; }
+    .cash-form input { width: 100%; height: 41px; padding: 0 11px; outline: none; border: 1px solid var(--line); border-radius: 9px; font: inherit; font-size: 12px; }
+    .cash-form input:focus { border-color: var(--green); }
+    .cash-hint { margin: 7px 0 0; color: var(--muted); font-size: 10px; }
+    .modal-error { min-height: 15px; margin: 10px 0 0; color: #b64f3d; font-size: 10px; }
+    .modal-submit { width: 100%; margin-top: 9px; }
+    .toast { position: fixed; z-index: 20; right: 24px; bottom: 24px; display: flex; align-items: center; gap: 9px; max-width: calc(100vw - 40px); padding: 13px 17px; color: white; background: var(--forest); border-radius: 11px; box-shadow: 0 8px 28px rgba(20,56,42,.2); font-size: 12px; opacity: 0; transform: translateY(10px); pointer-events: none; transition: opacity .2s, transform .2s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    body:not(.authenticated) .app { display: none; }
+    .login-screen {
+      display: none; min-height: 100vh; align-items: center; justify-items: center; padding: 28px;
+      background: radial-gradient(ellipse at 15% 12%, #e7f0d9 0, transparent 37%), var(--canvas);
+    }
+    body:not(.authenticated) .login-screen { display: grid; }
+    .login-card {
+      display: grid; grid-template-columns: 1fr .88fr; width: min(100%, 880px); min-height: 510px;
+      overflow: hidden; background: white; border: 1px solid var(--line); border-radius: 22px;
+      box-shadow: 0 24px 70px rgba(31,67,45,.09);
+    }
+    .login-form-panel { display: flex; flex-direction: column; justify-content: center; padding: 52px clamp(28px, 6vw, 60px); }
+    .login-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 48px; font-size: 18px; font-weight: 760; letter-spacing: -.6px; }
+    .login-title { margin: 0; font-size: 29px; letter-spacing: -1.1px; }
+    .login-description { margin: 9px 0 28px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .login-field { margin-bottom: 16px; }
+    .login-field label { display: block; margin-bottom: 7px; font-size: 11px; font-weight: 680; }
+    .login-field input { width: 100%; height: 44px; padding: 0 12px; outline: none; color: var(--forest); background: white; border: 1px solid #e3e9e1; border-radius: 9px; font: inherit; font-size: 12px; }
+    .login-field input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(40,116,81,.1); }
+    .login-submit { width: 100%; margin-top: 5px; }
+    .login-error { min-height: 16px; margin: 11px 0 0; color: #b64f3d; font-size: 11px; }
+    .login-notice { margin: 20px 0 0; color: #8a968c; font-size: 10px; line-height: 1.6; }
+    .login-art {
+      position: relative; display: flex; flex-direction: column; justify-content: flex-end; min-height: 100%;
+      padding: 36px; overflow: hidden; color: white; background: var(--forest);
+    }
+    .login-art:before, .login-art:after { content: ""; position: absolute; width: 350px; height: 350px; top: -110px; right: -100px; border: 1px solid rgba(217,243,106,.27); border-radius: 50%; }
+    .login-art:after { width: 250px; height: 250px; top: -60px; right: -50px; }
+    .login-leaf { position: absolute; top: 26%; left: 50%; display: grid; place-items: center; width: 134px; height: 134px; color: var(--forest); background: var(--lime); border-radius: 48% 52% 50% 12%; transform: translate(-50%, -50%) rotate(-35deg); }
+    .login-leaf svg { width: 70px; height: 70px; transform: rotate(35deg); }
+    .login-art-copy { position: relative; z-index: 1; }
+    .login-art-copy span { color: var(--lime); font-size: 10px; font-weight: 700; letter-spacing: 1.5px; }
+    .login-art-copy h2 { max-width: 300px; margin: 12px 0; font-size: 28px; line-height: 1.2; letter-spacing: -.8px; }
+    .login-art-copy p { max-width: 290px; margin: 0; color: #c0cec3; font-size: 11px; line-height: 1.7; }
+    .sign-out { margin-left: auto; padding: 6px; color: #829087; background: transparent; border: 0; border-radius: 7px; font-size: 10px; }
+    .sign-out:hover { color: var(--green); background: #f2f6eb; }
+    @media (min-width: 1300px) { main { padding-right: 65px; padding-left: 65px; } }
+    @media (max-width: 900px) {
+      .sidebar { width: 205px; flex-basis: 205px; }
+      main { padding: 29px 26px 40px; }
+      .hero { padding: 25px; gap: 15px; }
+      .lower-grid { grid-template-columns: 1fr; }
+      .map-layout { grid-template-columns: 1fr; }
+      .machine-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .map-canvas { min-height: 250px; }
+    }
+    @media (max-width: 640px) {
+      .login-screen { padding: 16px; }
+      .login-card { grid-template-columns: 1fr; min-height: auto; }
+      .login-form-panel { padding: 30px 25px; }
+      .login-brand { margin-bottom: 34px; }
+      .login-art { display: none; }
+      .app { display: block; padding-bottom: 62px; }
+      .sidebar { position: fixed; z-index: 5; inset: auto 0 0; width: 100%; height: 61px; flex-direction: row; justify-content: center; padding: 5px 8px; border-top: 1px solid var(--line); border-right: 0; }
+      .brand, .nav-label, .sidebar-bottom { display: none; }
+      .nav { display: flex; justify-content: space-around; width: 100%; }
+      .nav a { display: grid; justify-items: center; gap: 3px; min-width: 63px; padding: 5px; font-size: 9px; }
+      .nav svg { width: 18px; height: 18px; }
+      main { padding: 23px 17px 30px; }
+      .topbar { margin-bottom: 23px; }
+      .top-actions { gap: 8px; }
+      .top-actions .primary-button { width: 40px; min-width: 40px; padding: 0; font-size: 0; }
+      .hero { grid-template-columns: 1fr; gap: 20px; padding: 23px; }
+      .hero h2 { margin-top: 15px; font-size: 29px; }
+      .hero-points { max-width: unset; }
+      .points-value { display: inline-block; margin: 9px 7px 0 0; font-size: 29px; }
+      .points-foot { display: inline-block; }
+      .points-cta { margin-top: 12px; }
+      .stats { grid-template-columns: 1fr; gap: 9px; }
+      .stat-card { min-height: 72px; }
+      .section-heading { margin-top: 24px; }
+      .lower-grid { margin-top: 23px; }
+      .map-panel { margin-top: 23px; padding: 15px; }
+      .map-canvas { min-height: 225px; }
+      .machine-list { grid-template-columns: 1fr; }
+      .map-legend { gap: 8px; padding: 7px; font-size: 8px; }
+      .panel { padding: 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *:before, *:after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <section class="login-screen" id="login-screen" aria-labelledby="login-title">
+    <div class="login-card">
+      <div class="login-form-panel">
+        <div class="login-brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 5-4 5 4M12 3v8m5 6 5-2-1-6m1 6-7-4M5 17l-4-2 1-6m-1 6 7-4"/><path d="m9 21 3-2 3 2m-3-2v-6"/></svg>
+          </span>
+          ReCircle
+        </div>
+        <h1 class="login-title" id="login-title">Welcome back</h1>
+        <p class="login-description">Sign in to see your recycling progress and rewards.</p>
+        <form id="login-form">
+          <div class="login-field">
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" autocomplete="username" placeholder="Enter your username" required>
+          </div>
+          <div class="login-field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+          </div>
+          <button class="primary-button login-submit" type="submit">Sign in <span aria-hidden="true">→</span></button>
+          <p class="login-error" id="login-error" role="alert"></p>
+        </form>
+        <p class="login-notice">Demo sign-in only. For real accounts, connect a secure server-side authentication service.</p>
+      </div>
+      <aside class="login-art" aria-hidden="true">
+        <div class="login-leaf">
+          <svg viewBox="0 0 72 72" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M57 15C35 15 17 20 15 40c-1 10 6 17 16 16 20-2 25-20 26-41Z"/><path d="M14 59c7-15 19-26 35-35"/><path d="M29 42c-1-6-1-10-4-14m12 5c4-1 8-1 12 1"/></svg>
+        </div>
+        <div class="login-art-copy">
+          <span>A BETTER KIND OF CYCLE</span>
+          <h2>Your small choices grow into a greener future.</h2>
+          <p>Every bottle, can, and box you recycle brings us one step closer to a healthier planet.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+  <div class="app">
+    <aside class="sidebar" aria-label="Main navigation">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 5-4 5 4M12 3v8m5 6 5-2-1-6m1 6-7-4M5 17l-4-2 1-6m-1 6 7-4"/><path d="m9 21 3-2 3 2m-3-2v-6"/></svg>
+        </span>
+        ReCircle
+      </div>
+      <p class="nav-label">WORKSPACE</p>
+      <nav class="nav">
+        <a class="active" href="#overview" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>
+          Overview
+        </a>
+        <a href="#activity">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 7h14l-2 9H8L5 3H2"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="m10 11 2 2 4-4"/></svg>
+          My recycling
+        </a>
+        <a href="#rewards" class="redeem-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12v8H4v-8M2 7h20v5H2z"/><path d="M12 20V7m0 0H7.5a2.5 2.5 0 1 1 2.5-2c0 1.1 2 2 2 2Zm0 0h4.5A2.5 2.5 0 1 0 14 5c0 1.1-2 2-2 2Z"/></svg>
+          Rewards shop
+        </a>
+        <a href="#impact">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="M8 12s1.5-3 4-3 4 3 4 3-1.5 3-4 3-4-3-4-3Z"/><path d="M12 9v6"/></svg>
+          My impact
+        </a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="impact-card" id="impact">
+          <div class="impact-icon" aria-hidden="true">🌱</div>
+          <p>Small actions, big impact</p>
+          <span>Your recycling helps keep valuable materials in use and out of landfills.</span>
+        </div>
+        <div class="profile">
+          <div class="avatar" aria-hidden="true">JD</div>
+          <div><strong>Jamie Davis</strong><small>Eco enthusiast</small></div>
+          <button class="sign-out" type="button" id="sign-out">Sign out</button>
+        </div>
+      </div>
+    </aside>
+
+    <main id="overview">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">SATURDAY, OCTOBER 10</p>
+          <h1>Good for the planet, Jamie 🌿</h1>
+        </div>
+        <div class="top-actions">
+          <button class="icon-button" type="button" aria-label="Notifications" id="notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+            <span class="status-dot"></span>
+          </button>
+          <button class="primary-button" type="button" id="log-recycling">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"/></svg>
+            Log recycling
+          </button>
+        </div>
+      </header>
+
+      <section class="hero" aria-label="Rewards summary">
+        <div class="hero-copy">
+          <div class="hero-kicker"><span></span> YOUR PLANET-POSITIVE PROGRESS</div>
+          <h2>Every little bit<br>comes back to you.</h2>
+          <p>Recycle more, earn more. Your everyday choices are making a real difference.</p>
+          <button class="primary-button" type="button" id="hero-redeem">Explore rewards <span aria-hidden="true">→</span></button>
+        </div>
+        <div class="hero-points" id="rewards">
+          <div class="points-label">AVAILABLE POINTS
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2Z"/></svg>
+          </div>
+          <strong class="points-value" id="points-balance">2,450</strong>
+          <span class="points-foot">points ready to redeem</span>
+          <button class="points-cta" type="button" id="redeem-button"><span>Choose your reward</span><span aria-hidden="true">→</span></button>
+        </div>
+      </section>
+
+      <section aria-labelledby="stats-title">
+        <div class="section-heading">
+          <div><h2 id="stats-title">Your recycling at a glance</h2><p>Look at the good you've put back into the world.</p></div>
+          <button class="text-button" type="button" id="period-button">All time⌄</button>
+        </div>
+        <div class="stats">
+          <article class="stat-card">
+            <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18m7-15H9a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H5"/></svg></div>
+            <div><div class="stat-label">TOTAL RECYCLED</div><div class="stat-value" id="total-weight">48.6 <small>kg</small></div></div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 9.5 9.5 3 12l6.5 2.5L12 21l2.5-6.5L21 12l-6.5-2.5L12 3Z"/></svg></div>
+            <div><div class="stat-label">POINTS EARNED</div><div class="stat-value" id="total-earned">3,200</div></div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m8 12 2.5 2.5L16 9"/></svg></div>
+            <div><div class="stat-label">CO₂ SAVED</div><div class="stat-value" id="co2-saved">12.4 <small>kg</small></div></div>
+          </article>
+        </div>
+      </section>
+
+      <div class="lower-grid">
+        <section class="panel" id="activity" aria-labelledby="activity-title">
+          <div class="panel-heading"><h2 id="activity-title">Recent activity</h2><button type="button" id="activity-filter">This month⌄</button></div>
+          <div class="activity-list" id="activity-list">
+            <div class="activity">
+              <div class="activity-icon" aria-hidden="true">♻️</div>
+              <div class="activity-text"><strong>Plastic bottles</strong><span>Today · 10:24 AM</span></div>
+              <div class="activity-amount">+1.2 kg<small>+120 pts</small></div>
+            </div>
+            <div class="activity">
+              <div class="activity-icon" aria-hidden="true">📦</div>
+              <div class="activity-text"><strong>Cardboard & paper</strong><span>Yesterday · 4:15 PM</span></div>
+              <div class="activity-amount">+3.5 kg<small>+175 pts</small></div>
+            </div>
+            <div class="activity">
+              <div class="activity-icon" aria-hidden="true">🥫</div>
+              <div class="activity-text"><strong>Aluminum cans</strong><span>Oct 7 · 11:02 AM</span></div>
+              <div class="activity-amount">+0.8 kg<small>+160 pts</small></div>
+            </div>
+            <div class="activity">
+              <div class="activity-icon" aria-hidden="true">🍾</div>
+              <div class="activity-text"><strong>Glass bottles</strong><span>Oct 5 · 9:38 AM</span></div>
+              <div class="activity-amount">+2.1 kg<small>+105 pts</small></div>
+            </div>
+          </div>
+        </section>
+        <section class="panel" aria-labelledby="materials-title">
+          <div class="panel-heading"><h2 id="materials-title">What you've recycled</h2><button type="button" id="materials-period">All time⌄</button></div>
+          <div class="material-list">
+            <div class="material-row"><span class="material-emoji" aria-hidden="true">♻️</span><div><div class="material-name">Plastic</div><div class="material-track"><div class="material-fill" style="width:76%"></div></div></div><span class="material-amount" id="plastic-weight">18.4 kg</span></div>
+            <div class="material-row"><span class="material-emoji" aria-hidden="true">📦</span><div><div class="material-name">Paper & cardboard</div><div class="material-track"><div class="material-fill" style="width:58%"></div></div></div><span class="material-amount" id="paper-weight">14.2 kg</span></div>
+            <div class="material-row"><span class="material-emoji" aria-hidden="true">🍾</span><div><div class="material-name">Glass</div><div class="material-track"><div class="material-fill" style="width:38%"></div></div></div><span class="material-amount" id="glass-weight">9.1 kg</span></div>
+            <div class="material-row"><span class="material-emoji" aria-hidden="true">🥫</span><div><div class="material-name">Metal</div><div class="material-track"><div class="material-fill" style="width:29%"></div></div></div><span class="material-amount" id="metal-weight">6.9 kg</span></div>
+          </div>
+        </section>
+      </div>
+
+      <section class="map-panel" aria-labelledby="map-title">
+        <div class="section-heading" style="margin-top: 0">
+          <div><h2 id="map-title">Recycling machines near you</h2><p>Find a convenient drop-off point nearby.</p></div>
+          <span class="map-tag" style="position: static">📍 Sample neighborhood</span>
+        </div>
+        <div class="map-layout">
+          <div class="map-canvas" aria-label="Illustrative neighborhood map with three sample recycling-machine locations">
+            <svg viewBox="0 0 720 430" preserveAspectRatio="xMidYMid slice" role="img" aria-labelledby="map-svg-title">
+              <title id="map-svg-title">Illustrative map of nearby recycling machines</title>
+              <rect width="720" height="430" fill="#eaf0e5"/>
+              <path d="M470 0h250v157H470z" fill="#dcebd3"/>
+              <path d="M493 23h91v56h-91zm112 0h87v56h-87zM493 96h91v42h-91zm112 0h87v42h-87z" fill="#c8dfbd"/>
+              <path d="M0 285h221v145H0z" fill="#dcebd3"/>
+              <path d="M18 305h83v48H18zm103 0h78v48h-78zM18 369h83v42H18zm103 0h78v42h-78z" fill="#c8dfbd"/>
+              <path d="M311 126c29-44 91-57 136-28 42 27 55 80 30 123-28 46-94 66-141 35-45-30-56-86-25-130z" fill="#cfe3bf"/>
+              <path d="M346 170c21-24 47-35 79-34" fill="none" stroke="#b4d39e" stroke-width="4" stroke-linecap="round"/>
+              <path d="M-25 76 748 274M-18 366 737 143M157-15l119 460m174-454 92 470m194-467L625 445" fill="none" stroke="#d8ded4" stroke-width="37" stroke-linecap="round"/>
+              <path d="M-25 76 748 274M-18 366 737 143M157-15l119 460m174-454 92 470m194-467L625 445" fill="none" stroke="#fff" stroke-width="27" stroke-linecap="round"/>
+              <path d="M-25 76 748 274M-18 366 737 143M157-15l119 460m174-454 92 470m194-467L625 445" fill="none" stroke="#ecf0e9" stroke-width="1.5" stroke-dasharray="8 9"/>
+              <path d="M239 49h56v34h-56zm-2 74h43v31h-43zm259 173h60v38h-60zm-161 84h55v29h-55z" fill="#e1e7db" stroke="#d4ddd1" stroke-width="2"/>
+              <g fill="#b2c99e"><circle cx="343" cy="131" r="7"/><circle cx="437" cy="139" r="8"/><circle cx="327" cy="207" r="8"/><circle cx="458" cy="209" r="7"/><circle cx="370" cy="235" r="6"/><circle cx="418" cy="230" r="7"/><circle cx="585" cy="190" r="6"/><circle cx="110" cy="204" r="7"/></g>
+              <g fill="#fdfefa" font-family="system-ui, sans-serif" font-size="11" font-weight="600"><text x="354" y="182">MAPLEWOOD PARK</text><text x="28" y="270">WESTSIDE</text><text x="540" y="350">RIVER WALK</text></g>
+            </svg>
+            <span class="map-tag">ILLUSTRATIVE MAP</span>
+            <span class="you-are-here" title="Your approximate location"></span>
+            <button class="map-marker marker-one selected" type="button" data-machine="greenway" aria-label="Select Greenway Community Hub">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 8h8v13H8zM6 8h12M10 4h4l2 4H8z"/><path d="m10 13 2 2 3-4"/></svg>
+            </button>
+            <button class="map-marker marker-two" type="button" data-machine="oak" aria-label="Select Oak Street Market">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 8h8v13H8zM6 8h12M10 4h4l2 4H8z"/><path d="m10 13 2 2 3-4"/></svg>
+            </button>
+            <button class="map-marker marker-three" type="button" data-machine="riverside" aria-label="Select Riverside Recycling Point">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 8h8v13H8zM6 8h12M10 4h4l2 4H8z"/><path d="m10 13 2 2 3-4"/></svg>
+            </button>
+            <div class="map-legend"><span class="legend-item"><i class="legend-dot"></i> Machines</span><span class="legend-item"><i class="legend-dot current"></i> You</span></div>
+          </div>
+          <div class="machine-list" aria-label="Nearby recycling machines">
+            <button class="machine-card selected" type="button" data-machine="greenway">
+              <span class="machine-title-row"><span class="machine-title">Greenway Community Hub</span><span class="machine-distance">0.4 mi</span></span>
+              <span class="machine-address">24 Garden Lane</span>
+              <span class="machine-status">Open · Plastic, cans, glass</span>
+            </button>
+            <button class="machine-card" type="button" data-machine="oak">
+              <span class="machine-title-row"><span class="machine-title">Oak Street Market</span><span class="machine-distance">0.8 mi</span></span>
+              <span class="machine-address">180 Oak Street</span>
+              <span class="machine-status">Open · Plastic, cans</span>
+            </button>
+            <button class="machine-card" type="button" data-machine="riverside">
+              <span class="machine-title-row"><span class="machine-title">Riverside Recycling Point</span><span class="machine-distance">1.2 mi</span></span>
+              <span class="machine-address">5 River Walk</span>
+              <span class="machine-status">Open · All materials</span>
+            </button>
+          </div>
+        </div>
+        <p class="map-disclaimer">Imaginary sample map and locations for demonstration only. Distances, addresses, and hours are not real.</p>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="reward-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <div class="modal-top">
+        <div><h2 id="modal-title">Your points, your choice.</h2><p>Turn your recycling rewards into something good.</p></div>
+        <button type="button" class="close-button" id="close-modal" aria-label="Close">×</button>
+      </div>
+      <div class="balance-strip"><span>Available to spend</span><strong><span id="modal-balance">2,450</span> pts</strong></div>
+      <div class="choice-list" id="choice-list">
+        <button class="choice" type="button" data-type="cash" data-cost="500" data-label="Cash transfer">
+          <span class="choice-icon" aria-hidden="true">💸</span><span class="choice-copy"><strong>Transfer to money</strong><small>Send a cash reward to your account</small></span><span class="choice-price">500 pts = $5</span>
+        </button>
+        <button class="choice" type="button" data-type="item" data-cost="800" data-label="Reusable coffee cup">
+          <span class="choice-icon" aria-hidden="true">☕</span><span class="choice-copy"><strong>Reusable coffee cup</strong><small>From Earthwise Goods · Partner shop</small></span><span class="choice-price">800 pts</span>
+        </button>
+        <button class="choice" type="button" data-type="item" data-cost="1200" data-label="Organic cotton tote">
+          <span class="choice-icon" aria-hidden="true">👜</span><span class="choice-copy"><strong>Organic cotton tote</strong><small>From Green Thread · Partner shop</small></span><span class="choice-price">1,200 pts</span>
+        </button>
+        <button class="choice" type="button" data-type="item" data-cost="2000" data-label="Native seed starter kit">
+          <span class="choice-icon" aria-hidden="true">🌱</span><span class="choice-copy"><strong>Native seed starter kit</strong><small>From Little Wild · Partner shop</small></span><span class="choice-price">2,000 pts</span>
+        </button>
+      </div>
+      <div class="cash-form" id="cash-form">
+        <label for="transfer-destination">Where should we send your money?</label>
+        <input id="transfer-destination" type="text" autocomplete="email" placeholder="Email or payment handle">
+        <p class="cash-hint" id="cash-hint">Enter your email or payment handle. 500 points = $5.</p>
+      </div>
+      <p class="modal-error" id="modal-error" aria-live="polite"></p>
+      <button class="primary-button modal-submit" type="button" id="confirm-reward" disabled>Choose a reward to continue</button>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const loginForm = document.getElementById("login-form");
+      const loginError = document.getElementById("login-error");
+      loginForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const formData = new FormData(loginForm);
+        const username = formData.get("username");
+        const password = formData.get("password");
+        if (username !== "timo" || password !== "123456789") {
+          loginError.textContent = "That username or password doesn't match. Please try again.";
+          return;
+        }
+        document.body.classList.add("authenticated");
+        loginError.textContent = "";
+      });
+      document.getElementById("sign-out").addEventListener("click", () => {
+        document.body.classList.remove("authenticated");
+        loginForm.reset();
+        loginError.textContent = "";
+        document.getElementById("username").focus();
+      });
+
+      const state = {
+        points: 2450,
+        earned: 3200,
+        weight: 48.6,
+        co2: 12.4,
+        materials: { plastic: 18.4, paper: 14.2, glass: 9.1, metal: 6.9 },
+        selected: null,
+      };
+      const modal = document.getElementById("reward-modal");
+      const pointsBalance = document.getElementById("points-balance");
+      const modalBalance = document.getElementById("modal-balance");
+      const cashForm = document.getElementById("cash-form");
+      const destination = document.getElementById("transfer-destination");
+      const confirmButton = document.getElementById("confirm-reward");
+      const error = document.getElementById("modal-error");
+      const toast = document.getElementById("toast");
+      let toastTimeout;
+
+      const format = (value) => new Intl.NumberFormat("en-US").format(value);
+      const syncBalances = () => {
+        pointsBalance.textContent = format(state.points);
+        modalBalance.textContent = format(state.points);
+      };
+      const showToast = (message) => {
+        toast.textContent = message;
+        toast.classList.add("show");
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => toast.classList.remove("show"), 3500);
+      };
+      const openModal = () => {
+        modal.classList.add("open");
+        document.body.style.overflow = "hidden";
+        syncBalances();
+        document.getElementById("close-modal").focus();
+      };
+      const closeModal = () => {
+        modal.classList.remove("open");
+        document.body.style.overflow = "";
+        state.selected = null;
+        destination.value = "";
+        error.textContent = "";
+        cashForm.classList.remove("visible");
+        document.querySelectorAll(".choice").forEach((choice) => choice.classList.remove("selected"));
+        confirmButton.disabled = true;
+        confirmButton.textContent = "Choose a reward to continue";
+      };
+
+      document.getElementById("redeem-button").addEventListener("click", openModal);
+      document.getElementById("hero-redeem").addEventListener("click", openModal);
+      document.querySelector(".redeem-link").addEventListener("click", (event) => {
+        event.preventDefault();
+        openModal();
+      });
+      document.getElementById("close-modal").addEventListener("click", closeModal);
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) closeModal();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && modal.classList.contains("open")) closeModal();
+      });
+
+      document.querySelectorAll(".choice").forEach((choice) => {
+        choice.addEventListener("click", () => {
+          state.selected = {
+            type: choice.dataset.type,
+            cost: Number(choice.dataset.cost),
+            label: choice.dataset.label,
+          };
+          document.querySelectorAll(".choice").forEach((option) => option.classList.toggle("selected", option === choice));
+          const isCash = state.selected.type === "cash";
+          cashForm.classList.toggle("visible", isCash);
+          error.textContent = "";
+          confirmButton.disabled = false;
+          confirmButton.textContent = isCash ? "Continue with cash transfer" : "Redeem this reward";
+          if (isCash) destination.focus();
+        });
+      });
+
+      confirmButton.addEventListener("click", () => {
+        if (!state.selected) return;
+        if (state.points < state.selected.cost) {
+          error.textContent = "You don't have enough points for this reward yet.";
+          return;
+        }
+        if (state.selected.type === "cash" && !destination.value.trim()) {
+          error.textContent = "Enter an email or payment handle to continue.";
+          destination.focus();
+          return;
+        }
+        const reward = state.selected;
+        state.points -= reward.cost;
+        syncBalances();
+        closeModal();
+        const detail = reward.type === "cash"
+          ? `$${(reward.cost / 100).toFixed(2)} transfer requested.`
+          : `${reward.label} redeemed from our partner shop.`;
+        showToast(`${detail} ${format(state.points)} points left.`);
+      });
+
+      const logButton = document.getElementById("log-recycling");
+      logButton.addEventListener("click", () => {
+        const material = window.prompt("What did you recycle? Enter plastic, paper, glass, or metal:");
+        if (material === null) return;
+        const key = material.trim().toLowerCase();
+        const validMaterials = {
+          plastic: { label: "Plastic bottles", icon: "♻️", pointsPerKg: 100 },
+          paper: { label: "Paper & cardboard", icon: "📦", pointsPerKg: 50 },
+          glass: { label: "Glass bottles", icon: "🍾", pointsPerKg: 50 },
+          metal: { label: "Aluminum cans", icon: "🥫", pointsPerKg: 200 },
+        };
+        if (!validMaterials[key]) {
+          showToast("Please choose plastic, paper, glass, or metal.");
+          return;
+        }
+        const amountInput = window.prompt("How many kilograms?");
+        if (amountInput === null) return;
+        const amount = Number(amountInput.trim());
+        if (!Number.isFinite(amount) || amount <= 0 || amount > 1000) {
+          showToast("Enter a weight greater than 0 and no more than 1,000 kg.");
+          return;
+        }
+        const materialInfo = validMaterials[key];
+        const points = Math.round(amount * materialInfo.pointsPerKg);
+        state.weight = Math.round((state.weight + amount) * 10) / 10;
+        state.earned += points;
+        state.points += points;
+        state.co2 = Math.round((state.co2 + amount * 0.255) * 10) / 10;
+        state.materials[key] = Math.round((state.materials[key] + amount) * 10) / 10;
+        document.getElementById("total-weight").innerHTML = `${state.weight.toFixed(1)} <small>kg</small>`;
+        document.getElementById("total-earned").textContent = format(state.earned);
+        document.getElementById("co2-saved").innerHTML = `${state.co2.toFixed(1)} <small>kg</small>`;
+        const materialIds = { plastic: "plastic-weight", paper: "paper-weight", glass: "glass-weight", metal: "metal-weight" };
+        document.getElementById(materialIds[key]).textContent = `${state.materials[key].toFixed(1)} kg`;
+        const activity = document.createElement("div");
+        activity.className = "activity";
+        const title = document.createElement("strong");
+        title.textContent = materialInfo.label;
+        const date = document.createElement("span");
+        date.textContent = "Just now";
+        const amountText = document.createElement("div");
+        amountText.className = "activity-amount";
+        amountText.append(`${amount.toFixed(1)} kg`);
+        const earned = document.createElement("small");
+        earned.textContent = `+${format(points)} pts`;
+        amountText.append(earned);
+        const activityIcon = document.createElement("div");
+        activityIcon.className = "activity-icon";
+        activityIcon.setAttribute("aria-hidden", "true");
+        activityIcon.textContent = materialInfo.icon;
+        const activityCopy = document.createElement("div");
+        activityCopy.className = "activity-text";
+        activityCopy.append(title, date);
+        activity.append(activityIcon, activityCopy, amountText);
+        document.getElementById("activity-list").prepend(activity);
+        syncBalances();
+        showToast(`Nice work! ${format(points)} points added to your balance.`);
+      });
+
+      document.getElementById("notifications").addEventListener("click", () => {
+        showToast("You're all caught up. Keep up the great work!");
+      });
+      document.getElementById("period-button").addEventListener("click", (event) => {
+        event.currentTarget.textContent = event.currentTarget.textContent.startsWith("All time") ? "This month⌄" : "All time⌄";
+        showToast("Your recycling totals are shown for the selected period.");
+      });
+      document.getElementById("activity-filter").addEventListener("click", (event) => {
+        event.currentTarget.textContent = event.currentTarget.textContent.startsWith("This month") ? "All time⌄" : "This month⌄";
+        showToast("Activity list updated for the selected period.");
+      });
+      document.getElementById("materials-period").addEventListener("click", (event) => {
+        event.currentTarget.textContent = event.currentTarget.textContent.startsWith("All time") ? "This month⌄" : "All time⌄";
+        showToast("Material totals are shown for the selected period.");
+      });
+      document.querySelectorAll("[data-machine]").forEach((location) => {
+        location.addEventListener("click", () => {
+          const machine = location.dataset.machine;
+          document.querySelectorAll(".map-marker, .machine-card").forEach((item) => {
+            item.classList.toggle("selected", item.dataset.machine === machine);
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
