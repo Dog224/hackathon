@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#f5f8f1">
   <title>ReCircle — Recycling rewards</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <style>
     :root {
       color-scheme: light;
@@ -94,7 +96,13 @@
     .panel-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .panel-heading h2 { margin: 0; font-size: 13px; letter-spacing: -.2px; }
     .panel-heading button { color: #738078; background: white; border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px; font-size: 10px; }
-    .activity-list { display: grid; }
+    .activity-list { display: grid; max-height: 420px; overflow-y: auto; padding-right: 4px; }
+    .activity-year { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; padding: 9px 11px; background: #eff5e9; border-radius: 9px; font-size: 11px; font-weight: 700; }
+    .activity-year:first-child { margin-top: 0; }
+    .activity-year span { color: var(--green); font-size: 10px; font-weight: 650; }
+    .activity-month { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
+    .activity-month span { font-weight: 600; letter-spacing: 0; text-transform: none; }
+    .activity-empty { padding: 14px 0; color: var(--muted); font-size: 10px; }
     .activity { display: flex; align-items: center; gap: 11px; padding: 10px 0; border-bottom: 1px solid #f0f2ed; }
     .activity:last-child { border-bottom: 0; padding-bottom: 1px; }
     .activity-icon { display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 34px; background: #eff5e9; border-radius: 10px; font-size: 16px; }
@@ -113,19 +121,19 @@
     .material-row:nth-child(3) .material-fill { background: #7eaa9a; }
     .material-row:nth-child(4) .material-fill { background: #ddb77a; }
     .material-amount { color: #758179; font-size: 10px; }
+    .page[hidden] { display: none; }
     .map-panel { margin-top: 29px; padding: 20px; background: white; border: 1px solid #edf0e9; border-radius: 15px; }
     .map-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(220px, .65fr); gap: 18px; }
     .map-canvas { position: relative; min-height: 275px; overflow: hidden; background: #eaf0e5; border: 1px solid #e5ebe0; border-radius: 12px; }
-    .map-canvas > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .map-tag { position: absolute; z-index: 1; top: 12px; left: 12px; padding: 7px 10px; color: #52665a; background: rgba(255,255,255,.93); border: 1px solid rgba(228,235,224,.9); border-radius: 8px; font-size: 9px; font-weight: 650; }
-    .map-marker { position: absolute; z-index: 2; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; color: white; background: var(--green); border: 3px solid white; border-radius: 50% 50% 50% 4px; box-shadow: 0 3px 9px rgba(30,66,45,.25); transform: translate(-50%, -100%) rotate(-45deg); transition: background .15s, scale .15s; }
-    .map-marker svg { width: 14px; height: 14px; transform: rotate(45deg); }
-    .map-marker:hover, .map-marker.selected { z-index: 3; background: #a27932; scale: 1.14; }
-    .map-marker:focus-visible, .machine-card:focus-visible { outline: 3px solid #d9f36a; outline-offset: 2px; }
-    .map-marker.marker-one { top: 35%; left: 32%; }
-    .map-marker.marker-two { top: 60%; left: 63%; }
-    .map-marker.marker-three { top: 79%; left: 42%; }
-    .you-are-here { position: absolute; z-index: 1; top: 40%; left: 69%; display: grid; place-items: center; width: 18px; height: 18px; background: #5c9be2; border: 4px solid white; border-radius: 50%; box-shadow: 0 0 0 7px rgba(92,155,226,.2); }
+    #machine-map { position: absolute; inset: 0; z-index: 0; font-family: inherit; }
+    .map-canvas .map-tag, .map-legend { z-index: 1000; }
+    .map-fallback { display: grid; place-items: center; height: 100%; padding: 20px; color: var(--muted); font-size: 11px; text-align: center; }
+    .machine-icon { background: none; border: 0; }
+    .map-pin { display: grid; place-items: center; width: 32px; height: 32px; color: white; background: var(--green); border: 3px solid white; border-radius: 50% 50% 50% 4px; box-shadow: 0 3px 9px rgba(30,66,45,.25); transform: rotate(-45deg); transition: background .15s, scale .15s; cursor: pointer; }
+    .map-pin svg { width: 14px; height: 14px; transform: rotate(45deg); }
+    .map-pin:hover, .map-pin.selected { background: #a27932; scale: 1.14; }
+    .machine-card:focus-visible { outline: 3px solid #d9f36a; outline-offset: 2px; }
+    .you-dot { width: 18px; height: 18px; background: #5c9be2; border: 4px solid white; border-radius: 50%; box-shadow: 0 0 0 7px rgba(92,155,226,.2); }
     .map-legend { position: absolute; right: 11px; bottom: 11px; display: flex; align-items: center; gap: 12px; padding: 8px 10px; color: #657269; background: rgba(255,255,255,.92); border-radius: 8px; font-size: 9px; }
     .legend-item { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
     .legend-dot { width: 8px; height: 8px; background: var(--green); border: 1px solid white; border-radius: 50%; box-shadow: 0 0 0 1px var(--green); }
@@ -139,6 +147,8 @@
     .machine-address { display: block; margin-top: 5px; color: #829087; font-size: 9px; }
     .machine-status { display: flex; align-items: center; gap: 5px; margin-top: 8px; color: #647a66; font-size: 9px; }
     .machine-status:before { content: ""; width: 6px; height: 6px; background: #67a16c; border-radius: 50%; }
+    .machine-status.closed { color: #a0675a; }
+    .machine-status.closed:before { background: #c9806f; }
     .map-disclaimer { margin: 12px 0 0; color: #919b93; font-size: 9px; line-height: 1.5; }
     .modal-backdrop { position: fixed; inset: 0; z-index: 10; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(16,38,29,.52); backdrop-filter: blur(4px); }
     .modal-backdrop.open { display: flex; }
@@ -298,13 +308,17 @@
       </div>
       <p class="nav-label">WORKSPACE</p>
       <nav class="nav">
-        <a class="active" href="#overview" aria-current="page">
+        <a class="active" href="#overview" data-page="overview" aria-current="page">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>
           Overview
         </a>
-        <a href="#activity">
+        <a href="#activity" data-page="overview">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 7h14l-2 9H8L5 3H2"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="m10 11 2 2 4-4"/></svg>
           My recycling
+        </a>
+        <a href="#locations" data-page="locations">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          Recycle location
         </a>
         <a href="#rewards" class="redeem-link">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12v8H4v-8M2 7h20v5H2z"/><path d="M12 20V7m0 0H7.5a2.5 2.5 0 1 1 2.5-2c0 1.1 2 2 2 2Zm0 0h4.5A2.5 2.5 0 1 0 14 5c0 1.1-2 2-2 2Z"/></svg>
@@ -332,7 +346,7 @@
     <main id="overview">
       <header class="topbar">
         <div>
-          <p class="eyebrow">SATURDAY, OCTOBER 10</p>
+          <p class="eyebrow" id="current-date"></p>
           <h1>Good for the planet, Jamie 🌿</h1>
         </div>
         <div class="top-actions">
@@ -347,6 +361,7 @@
         </div>
       </header>
 
+      <div class="page" id="page-overview">
       <section class="hero" aria-label="Rewards summary">
         <div class="hero-copy">
           <div class="hero-kicker"><span></span> YOUR PLANET-POSITIVE PROGRESS</div>
@@ -372,7 +387,7 @@
         <div class="stats">
           <article class="stat-card">
             <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18m7-15H9a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H5"/></svg></div>
-            <div><div class="stat-label">TOTAL RECYCLED</div><div class="stat-value" id="total-weight">48.6 <small>kg</small></div></div>
+            <div><div class="stat-label">TOTAL RECYCLED</div><div class="stat-value" id="total-weight">39.5 <small>kg</small></div></div>
           </article>
           <article class="stat-card">
             <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 9.5 9.5 3 12l6.5 2.5L12 21l2.5-6.5L21 12l-6.5-2.5L12 3Z"/></svg></div>
@@ -387,28 +402,8 @@
 
       <div class="lower-grid">
         <section class="panel" id="activity" aria-labelledby="activity-title">
-          <div class="panel-heading"><h2 id="activity-title">Recent activity</h2><button type="button" id="activity-filter">This month⌄</button></div>
+          <div class="panel-heading"><h2 id="activity-title">Recent activity</h2><button type="button" id="activity-filter">Past 12 months⌄</button></div>
           <div class="activity-list" id="activity-list">
-            <div class="activity">
-              <div class="activity-icon" aria-hidden="true">♻️</div>
-              <div class="activity-text"><strong>Plastic bottles</strong><span>Today · 10:24 AM</span></div>
-              <div class="activity-amount">+1.2 kg<small>+120 pts</small></div>
-            </div>
-            <div class="activity">
-              <div class="activity-icon" aria-hidden="true">📦</div>
-              <div class="activity-text"><strong>Cardboard & paper</strong><span>Yesterday · 4:15 PM</span></div>
-              <div class="activity-amount">+3.5 kg<small>+175 pts</small></div>
-            </div>
-            <div class="activity">
-              <div class="activity-icon" aria-hidden="true">🥫</div>
-              <div class="activity-text"><strong>Aluminum cans</strong><span>Oct 7 · 11:02 AM</span></div>
-              <div class="activity-amount">+0.8 kg<small>+160 pts</small></div>
-            </div>
-            <div class="activity">
-              <div class="activity-icon" aria-hidden="true">🍾</div>
-              <div class="activity-text"><strong>Glass bottles</strong><span>Oct 5 · 9:38 AM</span></div>
-              <div class="activity-amount">+2.1 kg<small>+105 pts</small></div>
-            </div>
           </div>
         </section>
         <section class="panel" aria-labelledby="materials-title">
@@ -416,68 +411,30 @@
           <div class="material-list">
             <div class="material-row"><span class="material-emoji" aria-hidden="true">♻️</span><div><div class="material-name">Plastic</div><div class="material-track"><div class="material-fill" style="width:76%"></div></div></div><span class="material-amount" id="plastic-weight">18.4 kg</span></div>
             <div class="material-row"><span class="material-emoji" aria-hidden="true">📦</span><div><div class="material-name">Paper & cardboard</div><div class="material-track"><div class="material-fill" style="width:58%"></div></div></div><span class="material-amount" id="paper-weight">14.2 kg</span></div>
-            <div class="material-row"><span class="material-emoji" aria-hidden="true">🍾</span><div><div class="material-name">Glass</div><div class="material-track"><div class="material-fill" style="width:38%"></div></div></div><span class="material-amount" id="glass-weight">9.1 kg</span></div>
+            
             <div class="material-row"><span class="material-emoji" aria-hidden="true">🥫</span><div><div class="material-name">Metal</div><div class="material-track"><div class="material-fill" style="width:29%"></div></div></div><span class="material-amount" id="metal-weight">6.9 kg</span></div>
           </div>
         </section>
       </div>
+      </div>
 
+      <div class="page" id="page-locations" hidden>
       <section class="map-panel" aria-labelledby="map-title">
         <div class="section-heading" style="margin-top: 0">
-          <div><h2 id="map-title">Recycling machines near you</h2><p>Find a convenient drop-off point nearby.</p></div>
-          <span class="map-tag" style="position: static">📍 Sample neighborhood</span>
+          <div><h2 id="map-title">Recycling machines in Vientiane</h2><p>Find a convenient drop-off point nearby.</p></div>
+          <span class="map-tag" style="position: static" id="location-tag">📍 Vientiane, Laos</span>
         </div>
         <div class="map-layout">
-          <div class="map-canvas" aria-label="Illustrative neighborhood map with three sample recycling-machine locations">
-            <svg viewBox="0 0 720 430" preserveAspectRatio="xMidYMid slice" role="img" aria-labelledby="map-svg-title">
-              <title id="map-svg-title">Illustrative map of nearby recycling machines</title>
-              <rect width="720" height="430" fill="#eaf0e5"/>
-              <path d="M470 0h250v157H470z" fill="#dcebd3"/>
-              <path d="M493 23h91v56h-91zm112 0h87v56h-87zM493 96h91v42h-91zm112 0h87v42h-87z" fill="#c8dfbd"/>
-              <path d="M0 285h221v145H0z" fill="#dcebd3"/>
-              <path d="M18 305h83v48H18zm103 0h78v48h-78zM18 369h83v42H18zm103 0h78v42h-78z" fill="#c8dfbd"/>
-              <path d="M311 126c29-44 91-57 136-28 42 27 55 80 30 123-28 46-94 66-141 35-45-30-56-86-25-130z" fill="#cfe3bf"/>
-              <path d="M346 170c21-24 47-35 79-34" fill="none" stroke="#b4d39e" stroke-width="4" stroke-linecap="round"/>
-              <path d="M-25 76 748 274M-18 366 737 143M157-15l119 460m174-454 92 470m194-467L625 445" fill="none" stroke="#d8ded4" stroke-width="37" stroke-linecap="round"/>
-              <path d="M-25 76 748 274M-18 366 737 143M157-15l119 460m174-454 92 470m194-467L625 445" fill="none" stroke="#fff" stroke-width="27" stroke-linecap="round"/>
-              <path d="M-25 76 748 274M-18 366 737 143M157-15l119 460m174-454 92 470m194-467L625 445" fill="none" stroke="#ecf0e9" stroke-width="1.5" stroke-dasharray="8 9"/>
-              <path d="M239 49h56v34h-56zm-2 74h43v31h-43zm259 173h60v38h-60zm-161 84h55v29h-55z" fill="#e1e7db" stroke="#d4ddd1" stroke-width="2"/>
-              <g fill="#b2c99e"><circle cx="343" cy="131" r="7"/><circle cx="437" cy="139" r="8"/><circle cx="327" cy="207" r="8"/><circle cx="458" cy="209" r="7"/><circle cx="370" cy="235" r="6"/><circle cx="418" cy="230" r="7"/><circle cx="585" cy="190" r="6"/><circle cx="110" cy="204" r="7"/></g>
-              <g fill="#fdfefa" font-family="system-ui, sans-serif" font-size="11" font-weight="600"><text x="354" y="182">MAPLEWOOD PARK</text><text x="28" y="270">WESTSIDE</text><text x="540" y="350">RIVER WALK</text></g>
-            </svg>
-            <span class="map-tag">ILLUSTRATIVE MAP</span>
-            <span class="you-are-here" title="Your approximate location"></span>
-            <button class="map-marker marker-one selected" type="button" data-machine="greenway" aria-label="Select Greenway Community Hub">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 8h8v13H8zM6 8h12M10 4h4l2 4H8z"/><path d="m10 13 2 2 3-4"/></svg>
-            </button>
-            <button class="map-marker marker-two" type="button" data-machine="oak" aria-label="Select Oak Street Market">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 8h8v13H8zM6 8h12M10 4h4l2 4H8z"/><path d="m10 13 2 2 3-4"/></svg>
-            </button>
-            <button class="map-marker marker-three" type="button" data-machine="riverside" aria-label="Select Riverside Recycling Point">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 8h8v13H8zM6 8h12M10 4h4l2 4H8z"/><path d="m10 13 2 2 3-4"/></svg>
-            </button>
+          <div class="map-canvas">
+            <div id="machine-map" role="region" aria-label="Map of recycling machines in Vientiane"></div>
+            <span class="map-tag" id="map-clock">VIENTIANE</span>
             <div class="map-legend"><span class="legend-item"><i class="legend-dot"></i> Machines</span><span class="legend-item"><i class="legend-dot current"></i> You</span></div>
           </div>
-          <div class="machine-list" aria-label="Nearby recycling machines">
-            <button class="machine-card selected" type="button" data-machine="greenway">
-              <span class="machine-title-row"><span class="machine-title">Greenway Community Hub</span><span class="machine-distance">0.4 mi</span></span>
-              <span class="machine-address">24 Garden Lane</span>
-              <span class="machine-status">Open · Plastic, cans, glass</span>
-            </button>
-            <button class="machine-card" type="button" data-machine="oak">
-              <span class="machine-title-row"><span class="machine-title">Oak Street Market</span><span class="machine-distance">0.8 mi</span></span>
-              <span class="machine-address">180 Oak Street</span>
-              <span class="machine-status">Open · Plastic, cans</span>
-            </button>
-            <button class="machine-card" type="button" data-machine="riverside">
-              <span class="machine-title-row"><span class="machine-title">Riverside Recycling Point</span><span class="machine-distance">1.2 mi</span></span>
-              <span class="machine-address">5 River Walk</span>
-              <span class="machine-status">Open · All materials</span>
-            </button>
-          </div>
+          <div class="machine-list" aria-label="Nearby recycling machines" id="machine-list"></div>
         </div>
-        <p class="map-disclaimer">Imaginary sample map and locations for demonstration only. Distances, addresses, and hours are not real.</p>
+        <p class="map-disclaimer">Machine locations, names, and hours are made up for demonstration. Map data © OpenStreetMap contributors.</p>
       </section>
+      </div>
     </main>
   </div>
 
@@ -515,6 +472,14 @@
 
   <script>
     (() => {
+      const currentDate = document.getElementById("current-date");
+      const updateDate = () => {
+        const now = new Date();
+        currentDate.textContent = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }).toUpperCase();
+        const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        setTimeout(updateDate, nextMidnight - now + 1000);
+      };
+      updateDate();
       const loginForm = document.getElementById("login-form");
       const loginError = document.getElementById("login-error");
       loginForm.addEventListener("submit", (event) => {
@@ -539,9 +504,9 @@
       const state = {
         points: 2450,
         earned: 3200,
-        weight: 48.6,
+        weight: 39.5,
         co2: 12.4,
-        materials: { plastic: 18.4, paper: 14.2, glass: 9.1, metal: 6.9 },
+        materials: { plastic: 18.4, paper: 14.2, metal: 6.9 },
         selected: null,
       };
       const modal = document.getElementById("reward-modal");
@@ -635,19 +600,122 @@
         showToast(`${detail} ${format(state.points)} points left.`);
       });
 
+      const materials = {
+        plastic: { label: "Plastic bottles", icon: "♻️", pointsPerKg: 100 },
+        paper: { label: "Cardboard & paper", icon: "📦", pointsPerKg: 50 },
+        metal: { label: "Aluminum cans", icon: "🥫", pointsPerKg: 200 },
+      };
+      const daysAgo = (days, hour, minute) => {
+        const date = new Date();
+        date.setDate(date.getDate() - days);
+        date.setHours(hour, minute, 0, 0);
+        return date;
+      };
+      const makeActivity = (key, kg, date) => ({ key, kg, points: Math.round(kg * materials[key].pointsPerKg), date });
+      const sampleActivity = [
+        [0, 10, 24, "plastic", 1.2], [1, 16, 15, "paper", 3.5], [9, 11, 2, "metal", 0.8],
+        [22, 9, 40, "plastic", 2.1], [38, 14, 5, "plastic", 1.6], [51, 18, 30, "paper", 4.2],
+        [68, 12, 12, "metal", 0.6], [84, 10, 48, "plastic", 2.3], [101, 15, 20, "paper", 1.9],
+        [117, 17, 3, "paper", 2.8], [139, 11, 35, "metal", 1.1], [158, 13, 50, "plastic", 1.4],
+        [176, 9, 15, "paper", 3.1], [197, 16, 42, "metal", 0.5], [214, 10, 5, "plastic", 0.9],
+        [238, 14, 28, "metal", 0.7], [259, 12, 55, "paper", 3.9], [281, 18, 10, "plastic", 1.8],
+        [299, 11, 25, "paper", 1.5], [322, 15, 0, "metal", 0.9], [341, 10, 18, "paper", 2.4],
+        [357, 13, 37, "plastic", 1.3],
+      ];
+      const activities = sampleActivity.map(([days, hour, minute, key, kg]) => makeActivity(key, kg, daysAgo(days, hour, minute)));
+      const activityList = document.getElementById("activity-list");
+      const activityFilter = document.getElementById("activity-filter");
+      let activityRange = "year";
+
+      const sameDay = (a, b) => a.toDateString() === b.toDateString();
+      const formatWhen = (date) => {
+        const now = new Date();
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+        if (sameDay(date, now)) return `Today · ${time}`;
+        if (sameDay(date, yesterday)) return `Yesterday · ${time}`;
+        return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} · ${time}`;
+      };
+      const totalsText = (items) => {
+        const kg = items.reduce((sum, item) => sum + item.kg, 0);
+        const points = items.reduce((sum, item) => sum + item.points, 0);
+        return `${kg.toFixed(1)} kg · +${format(points)} pts`;
+      };
+      const makeHeading = (className, label, items) => {
+        const heading = document.createElement("div");
+        heading.className = className;
+        const total = document.createElement("span");
+        total.textContent = totalsText(items);
+        heading.append(label, total);
+        return heading;
+      };
+      const makeActivityRow = (item) => {
+        const info = materials[item.key];
+        const row = document.createElement("div");
+        row.className = "activity";
+        const icon = document.createElement("div");
+        icon.className = "activity-icon";
+        icon.setAttribute("aria-hidden", "true");
+        icon.textContent = info.icon;
+        const copy = document.createElement("div");
+        copy.className = "activity-text";
+        const title = document.createElement("strong");
+        title.textContent = info.label;
+        const when = document.createElement("span");
+        when.textContent = formatWhen(item.date);
+        copy.append(title, when);
+        const amount = document.createElement("div");
+        amount.className = "activity-amount";
+        amount.append(`+${item.kg.toFixed(1)} kg`);
+        const earned = document.createElement("small");
+        earned.textContent = `+${format(item.points)} pts`;
+        amount.append(earned);
+        row.append(icon, copy, amount);
+        return row;
+      };
+      const renderActivity = () => {
+        const now = new Date();
+        const start = activityRange === "month"
+          ? new Date(now.getFullYear(), now.getMonth(), 1)
+          : new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+        const visible = activities.filter((item) => item.date >= start).sort((a, b) => b.date - a.date);
+        activityList.replaceChildren();
+        if (!visible.length) {
+          const empty = document.createElement("p");
+          empty.className = "activity-empty";
+          empty.textContent = "No recycling logged for this period yet.";
+          activityList.append(empty);
+          return;
+        }
+        const years = new Map();
+        visible.forEach((item) => {
+          const year = item.date.getFullYear();
+          const month = item.date.getMonth();
+          if (!years.has(year)) years.set(year, new Map());
+          const months = years.get(year);
+          if (!months.has(month)) months.set(month, []);
+          months.get(month).push(item);
+        });
+        years.forEach((months, year) => {
+          const yearItems = [...months.values()].flat();
+          activityList.append(makeHeading("activity-year", `${year} total`, yearItems));
+          months.forEach((items, month) => {
+            const monthName = new Date(year, month, 1).toLocaleDateString("en-US", { month: "long" });
+            activityList.append(makeHeading("activity-month", monthName, items));
+            items.forEach((item) => activityList.append(makeActivityRow(item)));
+          });
+        });
+      };
+      renderActivity();
+
       const logButton = document.getElementById("log-recycling");
       logButton.addEventListener("click", () => {
-        const material = window.prompt("What did you recycle? Enter plastic, paper, glass, or metal:");
+        const material = window.prompt("What did you recycle? Enter plastic, paper, or metal:");
         if (material === null) return;
         const key = material.trim().toLowerCase();
-        const validMaterials = {
-          plastic: { label: "Plastic bottles", icon: "♻️", pointsPerKg: 100 },
-          paper: { label: "Paper & cardboard", icon: "📦", pointsPerKg: 50 },
-          glass: { label: "Glass bottles", icon: "🍾", pointsPerKg: 50 },
-          metal: { label: "Aluminum cans", icon: "🥫", pointsPerKg: 200 },
-        };
-        if (!validMaterials[key]) {
-          showToast("Please choose plastic, paper, glass, or metal.");
+        if (!materials[key]) {
+          showToast("Please choose plastic, paper, or metal.");
           return;
         }
         const amountInput = window.prompt("How many kilograms?");
@@ -657,7 +725,7 @@
           showToast("Enter a weight greater than 0 and no more than 1,000 kg.");
           return;
         }
-        const materialInfo = validMaterials[key];
+        const materialInfo = materials[key];
         const points = Math.round(amount * materialInfo.pointsPerKg);
         state.weight = Math.round((state.weight + amount) * 10) / 10;
         state.earned += points;
@@ -667,29 +735,10 @@
         document.getElementById("total-weight").innerHTML = `${state.weight.toFixed(1)} <small>kg</small>`;
         document.getElementById("total-earned").textContent = format(state.earned);
         document.getElementById("co2-saved").innerHTML = `${state.co2.toFixed(1)} <small>kg</small>`;
-        const materialIds = { plastic: "plastic-weight", paper: "paper-weight", glass: "glass-weight", metal: "metal-weight" };
+        const materialIds = { plastic: "plastic-weight", paper: "paper-weight", metal: "metal-weight" };
         document.getElementById(materialIds[key]).textContent = `${state.materials[key].toFixed(1)} kg`;
-        const activity = document.createElement("div");
-        activity.className = "activity";
-        const title = document.createElement("strong");
-        title.textContent = materialInfo.label;
-        const date = document.createElement("span");
-        date.textContent = "Just now";
-        const amountText = document.createElement("div");
-        amountText.className = "activity-amount";
-        amountText.append(`${amount.toFixed(1)} kg`);
-        const earned = document.createElement("small");
-        earned.textContent = `+${format(points)} pts`;
-        amountText.append(earned);
-        const activityIcon = document.createElement("div");
-        activityIcon.className = "activity-icon";
-        activityIcon.setAttribute("aria-hidden", "true");
-        activityIcon.textContent = materialInfo.icon;
-        const activityCopy = document.createElement("div");
-        activityCopy.className = "activity-text";
-        activityCopy.append(title, date);
-        activity.append(activityIcon, activityCopy, amountText);
-        document.getElementById("activity-list").prepend(activity);
+        activities.push(makeActivity(key, amount, new Date()));
+        renderActivity();
         syncBalances();
         showToast(`Nice work! ${format(points)} points added to your balance.`);
       });
@@ -701,22 +750,148 @@
         event.currentTarget.textContent = event.currentTarget.textContent.startsWith("All time") ? "This month⌄" : "All time⌄";
         showToast("Your recycling totals are shown for the selected period.");
       });
-      document.getElementById("activity-filter").addEventListener("click", (event) => {
-        event.currentTarget.textContent = event.currentTarget.textContent.startsWith("This month") ? "All time⌄" : "This month⌄";
+      activityFilter.addEventListener("click", () => {
+        activityRange = activityRange === "year" ? "month" : "year";
+        activityFilter.textContent = activityRange === "year" ? "Past 12 months⌄" : "This month⌄";
+        renderActivity();
         showToast("Activity list updated for the selected period.");
       });
       document.getElementById("materials-period").addEventListener("click", (event) => {
         event.currentTarget.textContent = event.currentTarget.textContent.startsWith("All time") ? "This month⌄" : "All time⌄";
         showToast("Material totals are shown for the selected period.");
       });
-      document.querySelectorAll("[data-machine]").forEach((location) => {
-        location.addEventListener("click", () => {
-          const machine = location.dataset.machine;
-          document.querySelectorAll(".map-marker, .machine-card").forEach((item) => {
-            item.classList.toggle("selected", item.dataset.machine === machine);
-          });
+      const navLinks = document.querySelectorAll(".nav a[data-page]");
+      const showPage = (page, link) => {
+        document.querySelectorAll(".page").forEach((section) => {
+          section.hidden = section.id !== `page-${page}`;
+        });
+        navLinks.forEach((item) => {
+          const active = item === link;
+          item.classList.toggle("active", active);
+          if (active) item.setAttribute("aria-current", "page");
+          else item.removeAttribute("aria-current");
+        });
+      };
+      navLinks.forEach((link) => {
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          showPage(link.dataset.page, link);
+          if (link.dataset.page === "locations") initMap();
+          const target = link.getAttribute("href") === "#activity" ? document.getElementById("activity") : null;
+          if (target) target.scrollIntoView({ behavior: "smooth" });
+          else window.scrollTo({ top: 0, behavior: "smooth" });
         });
       });
+      const machines = [
+        { id: "patuxai", name: "Patuxai Park Station", address: "Lane Xang Ave, Chanthabouly", lat: 17.9707, lng: 102.6181, open: 7, close: 21, accepts: "Plastic, cans, paper" },
+        { id: "talat-sao", name: "Talat Sao Mall Kiosk", address: "Lane Xang Ave, Talat Sao", lat: 17.9649, lng: 102.6139, open: 8, close: 20, accepts: "Plastic, cans" },
+        { id: "riverside", name: "Chao Anouvong Riverside Point", address: "Fa Ngum Rd, Mekong riverside", lat: 17.9625, lng: 102.6031, open: 6, close: 23, accepts: "All materials" },
+        { id: "that-luang", name: "That Luang Market Hub", address: "That Luang Rd, Saysettha", lat: 17.9768, lng: 102.6342, open: 6, close: 18, accepts: "Plastic, paper" },
+        { id: "nong-chan", name: "Nong Chan Community Point", address: "Khouvieng Rd, Sisattanak", lat: 17.9570, lng: 102.6205, open: 7, close: 19, accepts: "Cans, paper" },
+        { id: "sikhottabong", name: "Sikhottabong Station", address: "Luang Prabang Rd, Sikhottabong", lat: 17.9800, lng: 102.5810, open: 8, close: 22, accepts: "Plastic, cans, paper" },
+        { id: "dongdok", name: "Dongdok Campus Machine", address: "Dongdok Rd, Xaythany", lat: 18.0345, lng: 102.6470, open: 7, close: 17, accepts: "Plastic, paper" },
+      ];
+      const vientianeCenter = [17.9667, 102.6100];
+      const machineList = document.getElementById("machine-list");
+      const mapClock = document.getElementById("map-clock");
+      const locationTag = document.getElementById("location-tag");
+      const pinIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 8h8v13H8zM6 8h12M10 4h4l2 4H8z"/><path d="m10 13 2 2 3-4"/></svg>';
+      let userPosition = vientianeCenter;
+      let selectedMachine = machines[0].id;
+      let machineMap = null;
+      let youMarker = null;
+      const markers = {};
+
+      const vientianeTime = () => {
+        const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Vientiane", hour: "numeric", minute: "numeric", hourCycle: "h23" }).formatToParts(new Date());
+        const get = (type) => Number(parts.find((part) => part.type === type).value);
+        return get("hour") + get("minute") / 60;
+      };
+      const distanceKm = ([lat1, lng1], [lat2, lng2]) => {
+        const rad = (deg) => deg * Math.PI / 180;
+        const a = Math.sin(rad(lat2 - lat1) / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lng2 - lng1) / 2) ** 2;
+        return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      };
+      const hourLabel = (hour) => `${String(hour).padStart(2, "0")}:00`;
+      const selectMachine = (id, pan) => {
+        selectedMachine = id;
+        machineList.querySelectorAll(".machine-card").forEach((card) => card.classList.toggle("selected", card.dataset.machine === id));
+        Object.entries(markers).forEach(([key, marker]) => {
+          marker.getElement()?.querySelector(".map-pin").classList.toggle("selected", key === id);
+        });
+        const machine = machines.find((item) => item.id === id);
+        if (pan && machineMap) machineMap.flyTo([machine.lat, machine.lng], 15, { duration: 0.6 });
+      };
+      const renderMachines = () => {
+        const hour = vientianeTime();
+        mapClock.textContent = `VIENTIANE · ${new Date().toLocaleTimeString("en-US", { timeZone: "Asia/Vientiane", hour: "numeric", minute: "2-digit" })}`;
+        const sorted = machines
+          .map((machine) => ({ ...machine, km: distanceKm(userPosition, [machine.lat, machine.lng]), isOpen: hour >= machine.open && hour < machine.close }))
+          .sort((a, b) => a.km - b.km);
+        machineList.replaceChildren(...sorted.map((machine) => {
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className = "machine-card";
+          card.dataset.machine = machine.id;
+          card.classList.toggle("selected", machine.id === selectedMachine);
+          const row = document.createElement("span");
+          row.className = "machine-title-row";
+          const title = document.createElement("span");
+          title.className = "machine-title";
+          title.textContent = machine.name;
+          const distance = document.createElement("span");
+          distance.className = "machine-distance";
+          distance.textContent = `${machine.km.toFixed(1)} km`;
+          row.append(title, distance);
+          const address = document.createElement("span");
+          address.className = "machine-address";
+          address.textContent = machine.address;
+          const status = document.createElement("span");
+          status.className = `machine-status${machine.isOpen ? "" : " closed"}`;
+          status.textContent = machine.isOpen
+            ? `Open until ${hourLabel(machine.close)} · ${machine.accepts}`
+            : `Closed · Opens ${hourLabel(machine.open)} · ${machine.accepts}`;
+          card.append(row, address, status);
+          card.addEventListener("click", () => selectMachine(machine.id, true));
+          return card;
+        }));
+      };
+      const initMap = () => {
+        if (machineMap) {
+          machineMap.invalidateSize();
+          return;
+        }
+        if (!window.L) {
+          document.getElementById("machine-map").innerHTML = '<p class="map-fallback">The map couldn\'t load. Check your internet connection.</p>';
+          return;
+        }
+        machineMap = L.map("machine-map", { zoomControl: true }).setView(vientianeCenter, 13);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: "&copy; OpenStreetMap contributors",
+        }).addTo(machineMap);
+        machines.forEach((machine) => {
+          const icon = L.divIcon({ className: "machine-icon", html: `<span class="map-pin">${pinIcon}</span>`, iconSize: [32, 32], iconAnchor: [16, 32] });
+          markers[machine.id] = L.marker([machine.lat, machine.lng], { icon, title: machine.name, alt: machine.name })
+            .addTo(machineMap)
+            .bindTooltip(machine.name, { direction: "top", offset: [0, -30] })
+            .on("click", () => selectMachine(machine.id, false));
+        });
+        youMarker = L.marker(userPosition, { icon: L.divIcon({ className: "machine-icon", html: '<span class="you-dot"></span>', iconSize: [18, 18], iconAnchor: [9, 9] }), title: "You", interactive: false }).addTo(machineMap);
+        selectMachine(selectedMachine, false);
+        if (navigator.geolocation) {
+          navigator.geolocation.watchPosition((position) => {
+            const here = [position.coords.latitude, position.coords.longitude];
+            if (distanceKm(here, vientianeCenter) > 40) return;
+            userPosition = here;
+            youMarker.setLatLng(here);
+            locationTag.textContent = "📍 Using your live location";
+            renderMachines();
+          }, () => {}, { enableHighAccuracy: true, maximumAge: 30000 });
+        }
+      };
+      renderMachines();
+      setInterval(renderMachines, 60000);
     })();
   </script>
 </body>
